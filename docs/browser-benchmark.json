@@ -1,0 +1,7 @@
+{
+  "freshSixJobsTwoWorkersMs": 962.7,
+  "warmSamples": 20,
+  "warmP50Ms": 148.2,
+  "warmP95Ms": 168.3,
+  "scope": "Browser worker request/response including transfer; excludes UI rendering. Fresh batch includes startup; warm timings exclude startup."
+}

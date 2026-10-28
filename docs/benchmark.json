@@ -1,0 +1,11 @@
+{
+  "engine": "Node v24.15.0",
+  "cpu": "Intel(R) Core(TM) i5-6200U CPU @ 2.30GHz",
+  "rows": 1000,
+  "samples": 100,
+  "warmups": 10,
+  "p50Ms": 20.12,
+  "p95Ms": 40.6,
+  "maxMs": 64.27,
+  "scope": "Pure matching, alternating Buyer A/B, excludes normalization, worker startup, transfer and rendering. Local mock-data timing; not a scalability claim."
+}

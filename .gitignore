@@ -1,0 +1,57 @@
+# Installed dependencies
+node_modules/
+
+# Production build and Vite / TypeScript caches
+dist/
+.vite/
+.vite-temp/
+*.tsbuildinfo
+
+# Project-local npm cache, Playwright browsers, and temporary work
+.cache/
+.tmp/
+.npm/
+
+# Test results, coverage, and Playwright reports
+test-results/
+playwright-report/
+playwright/.cache/
+blob-report/
+coverage/
+.nyc_output/
+
+# Local environment files; keep a shareable example without secrets
+.env
+.env.*
+!.env.example
+
+# Runtime and package-manager logs
+*.log
+
+# Generated source archives from scripts/Prepare-Submission.ps1
+/submission/*.zip
+
+# Local deliverable copies; the repository copy of the note lives in docs/
+/output/
+
+# Local screenshot of an earlier terminal test run
+/Screenshot (232).png
+
+# Local editor files; allow shared VS Code project configuration
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Keep package-lock.json, data/*.json, the source CSV, and docs/screenshots/.
+# The app imports the prepared data, and the screenshots document the project.

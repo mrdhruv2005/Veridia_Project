@@ -1,0 +1,11 @@
+{
+  "hash": "6bd8e0ed7e1929881ac6f30aa8fdec3e2c84d505c659986a584ecf66df4d647d",
+  "total": 1000,
+  "retained": 980,
+  "quarantined": 20,
+  "counts": {
+    "invalid_delivery_history": 10,
+    "identity_conflict": 20,
+    "missing_lead_time": 10
+  }
+}
