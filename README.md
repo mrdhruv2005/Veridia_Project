@@ -1,100 +1,150 @@
-# Veridia manufacturer matching
+# Veridia | Manufacturer Matching
 
-A local, explainable shortlist for buyers sourcing precision engineering from India. Enter a requirement, compare up to three manufacturers, review field-level evidence, and save a supplier-confirmation checklist. The application uses the supplied mock CSV and requires no API key, backend, AI account or paid service.
+Veridia helps buyers and sourcing engineers shortlist Indian manufacturers for precision engineering orders. It checks a requirement against a supplied manufacturer dataset, explains why each supplier qualifies, and highlights the questions that still need supplier confirmation.
 
-## Run on Windows from D:
+The application runs in the browser using a mock dataset of 1,000 manufacturer records. Matching uses explicit, repeatable rules. No backend, database, API key or external AI service is required.
 
-Prerequisite: **Node.js 24 or newer**, with npm (verified with Node 24.15.0). Native TypeScript/config loading avoids an extra helper process. The project is in `D:\Project`. Keep the setup script active in each PowerShell window; it checks the drive before configuring project paths.
+![Veridia showing a buyer requirement and ranked manufacturer shortlist](docs/screenshots/02-shortlist.png)
 
-```powershell
-cd D:\Project
-. .\scripts\Use-DDrive.ps1
-npm.cmd ci
-npm.cmd run data:prepare
-npm.cmd run dev
+## Features
+
+- **Requirement-based matching:** Filter by material, manufacturing processes, batch quantity, required certificates and production lead time.
+- **Supplier comparison:** Compare up to three manufacturers side by side, including capabilities, timing, delivery history and supporting evidence.
+- **Clear explanations:** Review individual eligibility checks, data issues and reasons for exclusion. Near matches appear separately from the qualified shortlist.
+- **Confirmation checklists:** Track questions about drawings, tolerances, certificates, production slots and recurring orders for each supplier.
+- **Reports and saved reviews:** Export JSON, save a standalone HTML report, or print to PDF. Reopen a saved JSON report and explicitly verify it against the same dataset and matching policy.
+- **Independent buyer sessions:** Each browser tab has its own requirements, results and review progress. Matching runs in a Web Worker, and outdated responses cannot replace newer results.
+
+## Getting started
+
+Install **Node.js 24 or newer** with npm. Clone or download the repository, then open a terminal in the project root:
+
+```sh
+npm ci --cache ./.cache/npm
+npm run data:prepare
+npm run dev
 ```
 
-Open the local URL printed by Vite, normally <http://127.0.0.1:5173>. An offline-only npm setting can be overridden with `--offline=false` in a network-enabled terminal.
+The cache option keeps dependency downloads inside the project. Open the address printed by Vite, usually <http://127.0.0.1:5173>.
 
-The setup script keeps `node_modules`, npm cache (`.cache/npm`), Playwright browsers (`.cache/ms-playwright`), build output (`dist`), test reports and temporary files (`.tmp`) on D:. It changes only the current PowerShell process; it does not change system settings. There are no junctions to dependencies on another drive.
+### Try the sample requirements
 
-Reviewers on another operating system can use Node 24 with `npm ci --cache ./.cache/npm`, `npm run data:prepare` and `npm run dev`. The cache override replaces this workspace's D-drive default; no Windows script is needed there. Set `PLAYWRIGHT_BROWSERS_PATH` to a project-local folder before installing browsers or running browser tests on that machine.
+Set **Evaluation date** to **27 October 2026**, then choose **Buyer A** or **Buyer B**. Selecting an example runs matching immediately.
 
-## Try the assignment examples
+| Example | Requirement | Expected preliminary matches |
+| --- | --- | --- |
+| Buyer A | Aluminium, CNC machining, 1,000 units, ISO 9001, 42 production days | 33 manufacturers |
+| Buyer B | Stainless steel, sheet metal, 1,500 units, ISO 9001, 42 production days | VM1006 only |
 
-Set **Evaluation date** to **27 October 2026**, then select an example. Each example immediately runs matching. The examples interpret six weeks as **42 production calendar days**, explicitly excluding shipment. Change the deadline meaning to **Arrival at destination** when arrival is required; results then state that arrival feasibility remains unconfirmed.
+Both examples use six weeks as **42 production calendar days**, excluding shipping. The evaluation date affects certificate validity, so use the date above to reproduce these results.
 
-| Requirement | Expected preliminary result |
+Open **Evidence & checklist** on a supplier card to review the result. Select up to three **Compare** checkboxes, then choose **Compare suppliers**. Editing a requirement marks the previous results as outdated and clears comparison selections and checklist progress.
+
+## How matching works
+
+Eligibility is checked before ranking. A manufacturer must have an unambiguous identity, active status, the requested material and processes, a batch range that includes the order quantity, all required certificates, and a known production lead time within the requested window.
+
+The rules handle several details explicitly:
+
+- **Processes:** The grouped **CNC machining** option accepts either milling or turning. Selecting specific operations requires every selected operation to be listed.
+- **Certificate validity:** Requested certificates must remain valid through estimated production completion, including the expiry day. Completion assumes an immediate start on the evaluation date. The supplier's single recorded expiry date applies to all listed certificates. Clearing all certificate selections removes this filter.
+- **Missing information:** A supplier with no failed checks but unknown required information is marked **Needs confirmation** and stays outside the qualified shortlist.
+- **Deadlines:** Lead times use UTC calendar days. An arrival deadline screens production timing only; shipping and customs remain unconfirmed.
+- **Recurring orders:** The first batch is evaluated separately. Certificate renewal needs and monthly volume above nominal capacity produce warnings for follow-up.
+
+Qualified manufacturers are ranked by:
+
+1. Shortest production lead time.
+2. Highest valid on-time delivery percentage.
+3. Most years of export experience.
+4. Manufacturer ID as a stable tie-breaker.
+
+Unknown ranking metrics follow known values when earlier criteria are equal. The ordering is visible in the interface.
+
+## Dataset and data quality
+
+The source file, `veridia_csv.csv`, contains **1,000 rows and 31 columns**. The preparation script normalizes the CSV and generates `data/prepared.json` and `data/quality.json`. Original field values, source row numbers and validation issues are retained. A SHA-256 hash identifies the source snapshot.
+
+| Issue in the supplied data | Treatment |
 | --- | --- |
-| Buyer A: aluminium, CNC machining (either milling or turning), 1,000 units, ISO 9001, 42 production days | 33 candidates |
-| Buyer B: stainless steel, sheet metal, 1,500 units, ISO 9001, 42 production days | VM1006 only |
+| 20 rows share conflicting manufacturer IDs | All affected rows are quarantined, leaving 980 records for requirement-specific screening. |
+| 10 rows have no production lead time | Timing remains unknown; these rows cannot qualify for the shortlist. |
+| 10 rows have on-time delivery above 100% | The invalid metric is treated as unknown and cannot improve ranking. |
 
-VM1006 appears for both buyers. Its nominal monthly capacity is 1,500 units, while their combined batches total 2,500. This does not determine allocation within a six-week window: the file has no live booking, start-date or spare-capacity data. Confirm a production plan with the supplier. Searching never reserves capacity.
+To update the dataset, replace the source CSV while preserving its expected schema, then run `npm run data:prepare`. Run this command before unit tests after a CSV change; production builds also regenerate the data automatically. See the [data-quality report](docs/data-quality.md) for validation rules and source limitations.
 
-Select up to three **Compare** checkboxes and open **Compare suppliers**. Use **Evidence & checklist** to review reasons and record your own progress. An edit to any requirement immediately makes old results outdated and clears comparison and checklist progress. Each tab has separate in-memory state.
+## Reports and review progress
 
-## Verify and build
+**Download JSON** saves the evaluated requirement, all qualified results, the near-match sample, supplier evidence, comparison selections, checklist wording and progress, plus dataset and policy versions.
 
-```powershell
-cd D:\Project
-. .\scripts\Use-DDrive.ps1
-.\node_modules\.bin\playwright.cmd install chromium
-npm.cmd run check
-npm.cmd run preview
-```
+**Save readable HTML** creates a standalone report. **Print report** opens a preview with supplier selection and an optional near-match appendix, then supports the browser's **Print / Save as PDF**. Readable reports include selected suppliers, or the top three by default; choose **All matching suppliers** for the full shortlist. These choices do not reduce the JSON export.
 
-`check` runs lint, unit tests, data preparation, TypeScript checking, production build and browser tests. Browser tests use the production build at `http://127.0.0.1:4173`. The first browser install requires internet; subsequent tests run locally. If the CSV changes, run `npm.cmd run data:prepare` before unit tests. See [verification evidence](docs/verification.md) for checks actually completed and any limitations.
+**Open saved report** accepts schema-validated JSON up to 5 MB. Imported reports are labelled as unverified records. **Recalculate & verify replay** is available only when the dataset hash, dataset version and policy version match. An identical result preserves review progress; changed results clear it. Saved files are unsigned, so validation does not authenticate their contents.
 
-Individual commands: `npm run data:prepare`, `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, `npm run test:e2e`.
+Requirements and review progress stay in memory in the current tab. **Export before closing or reloading the page** to retain your work. Matching works offline after the page and worker have loaded. Offline reloading is not supported, and the HTML exporter must be loaded once before disconnecting if needed offline.
 
-For an independent install from the lockfile, run `.\scripts\Verify-CleanCopy.ps1` in normal PowerShell. It creates a new folder under `.tmp` on D:, runs `npm ci` and all checks, and retains logs. It does not remove existing work or publish anything.
+## Technology and project structure
 
-## Matching policy
+The frontend uses **React 19, TypeScript, Vite and Tailwind CSS**. **Papa Parse** handles CSV parsing, **Zod** validates data and saved reports, and a browser **Web Worker** runs the matching engine. Tests use **Vitest** and **Playwright**, with **ESLint** for linting.
 
-1. Quarantine ambiguous IDs and invalid capability/order records. Require active status, the material, all selected operations, an inclusive batch range and every requested certificate. The visible **CNC machining** group means either milling or turning; choosing both specific operations requires both.
-2. Require a known production lead time within the requested window. Missing lead time goes to **needs confirmation**, never the confirmed shortlist. An arrival window is only a necessary production screen; transit and customs are unknown.
-3. Add lead time in UTC calendar days to the frozen evaluation date. Require requested certificates to cover that completion date, including the expiry day. One supplier-level expiry is assumed to apply to all listed certificates. Clearing every certificate checkbox explicitly removes certificate filtering.
-4. Rank by shortest production time, highest valid on-time delivery, most general export experience, then manufacturer ID. Unknown metrics follow known metrics when earlier criteria tie. There is no opaque percentage score.
-5. Recurring orders evaluate the first batch separately. Renewal before a repeat horizon and monthly volume above nominal capacity generate warnings; neither implies actual available capacity.
-
-The default date is captured once from the current UTC date and is preserved across edits and examples. The CSV contains no historical issuance/status history. Past and future evaluations are labelled snapshot-based scenarios. Material/process lists do not prove that the combination can run on the same line; grades, drawings and tolerances need confirmation. Contact fields are mock example-domain addresses; no messages are sent.
-
-## Reports and replay
-
-**Download JSON** saves the complete normalized requirement, evaluated supplier evidence, explanations, comparison, checklist questions and progress, dataset SHA-256 and policy version. **Save readable HTML** creates a standalone report; open it later and use the browser's **Print / Save as PDF**. **Print report** previews the report and lets you choose the included suppliers and the near-match appendix. By default, readable reports include your selected suppliers, or the top three when none are selected, and omit the appendix. Choose **All matching suppliers** for a full report. The JSON always retains all results, regardless of these print choices.
-
-**Open saved report** accepts bounded (5 MB), schema-validated JSON with complete, distinct supplier checklists. Incomplete or inconsistent files are rejected before display. Saved question wording is preserved in details, comparison and exports. It displays the stored result with an explicit unverified-record label. **Recalculate & verify replay** is a separate action and is available only when the installed dataset hash, dataset version and policy version match. An identical recalculation preserves comparison, saved questions and checklist progress; changed results clear that progress and show an explanation. Edits to the requirement still clear review progress immediately. The application never silently substitutes a newer policy or dataset for an unavailable old version. Imported records are user-provided, unsigned files; schema validation does not authenticate their claims.
-
-Requirements and checklist progress stay in memory. Export explicitly to retain work; reloading the page clears unsaved state. Matching works without network access after the page and worker load. There is no service worker or promise of offline installation/reloading. The HTML exporter is loaded on demand, so open it once before disconnecting if using it offline.
-
-## Repository guide
-
-| Path | Purpose |
+| Path | Responsibility |
 | --- | --- |
-| `veridia_csv.csv` | Unmodified supplied source; SHA-256 identifies the dataset |
-| `Product_Engineer_Assignment.docx`, `IMPLEMENTATION_PLAN.md` | Original brief and finalized scope |
-| `data/prepared.json`, `data/quality.json` | Reproducibly generated normalization and issue counts |
-| `src/lib/data/` | CSV parsing, validation, provenance and quarantine |
-| `src/lib/matching/` | Pure eligibility/ranking, checklist templates, worker boundary |
-| `src/workers/` | Per-tab browser matching worker |
-| `src/lib/reports/` | Bounded JSON records and standalone HTML report |
-| `tests/`, `e2e/` | Business-rule, data, report, worker and real-browser checks |
-| [Product note (PDF)](docs/product-note.pdf) / [Markdown](docs/product-note.md) | Two-page note: audience, design choices, omissions, a defended trade-off and success measures |
-| [Data-quality report](docs/data-quality.md) | Observed defects, treatment and data limitations |
-| [Submission checklist](docs/submission-checklist.md) | Final review and pending repository handoff |
+| `src/App.tsx`, `src/components/` | Requirement form, results, comparison, checklists and report views |
+| `src/lib/data/` | CSV normalization, validation and source provenance |
+| `src/lib/matching/` | Eligibility rules, ranking and checklist generation |
+| `src/workers/` | Browser worker for matching requests |
+| `src/lib/reports/` | Saved-record validation, replay checks and HTML export |
+| `src/lib/schema.ts` | Shared schemas, supported values and version definitions |
+| `data/` | Prepared dataset and quality summary |
+| `scripts/prepare-data.ts` | Reproducible data preparation |
+| `tests/`, `e2e/` | Unit tests and browser tests |
+| `docs/` | Product decisions, data-quality notes, verification records and screenshots |
 
-## Free delivery
+## Development and verification
 
-Additional project budget: **₹0**. All required execution and tests are local and open source. No paid integrations, metered APIs, custom domain or paid runners are used. Preserve dependency licenses in installed/distributed packages; see [third-party notices](THIRD_PARTY_NOTICES.md).
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the local development server |
+| `npm run data:prepare` | Regenerate the normalized dataset and quality summary |
+| `npm run lint` | Run ESLint |
+| `npm run typecheck` | Check TypeScript types |
+| `npm test` | Run unit tests |
+| `npm run build` | Prepare data, check types and build the production app |
+| `npm run test:e2e` | Run Chromium tests against an existing production build |
+| `npm run check` | Run lint, unit tests, production build and browser tests |
+| `npm run preview` | Serve the production build locally |
 
-The user has approved a public GitHub repository; publishing is pending the new repository URL and a successful push. A hosted demo is optional. GitHub Pages from a public GitHub Free repository is the planned zero-cost route; do not upgrade or purchase hosting. The assignment requires a repository link, not a hosted URL.
+Install the test browser once, then run the full checks:
 
-Vite uses relative asset URLs by default, so the static build works under a repository subpath. To build an explicit Pages path:
-
-```powershell
-$env:VITE_BASE_PATH = '/YOUR_REPOSITORY_NAME/'
-npm.cmd run build
-Remove-Item Env:VITE_BASE_PATH
+```sh
+npx playwright install chromium
+npm run check
 ```
 
-Publish only the locally built `dist` contents to the Pages publishing branch after repository/sharing approval. There is no automatic CI deployment or paid-service configuration. Use local run instructions and screenshots if hosting is unavailable. Final submission deadline: **28 October 2026, end of day IST**.
+The first browser installation requires internet access. Playwright starts the production preview at `http://127.0.0.1:4173`; keep that port available when running browser tests.
+
+Coverage includes matching boundaries, certificate dates, ranking, data validation, both buyer examples, saved reports, replay, independent sessions, outdated worker responses, comparison and mobile interactions. Recorded results and verification limits are available in [docs/verification.md](docs/verification.md).
+
+## Production build
+
+```sh
+npm run build
+npm run preview
+```
+
+Deploy the generated `dist/` directory to a static web host. Vite uses relative asset paths by default, so the build supports hosting under a repository subpath. Set `VITE_BASE_PATH` at build time if the host requires an explicit base path. No application server or runtime credentials are needed.
+
+## Scope and limitations
+
+This project supports an initial sourcing review using mock data. Supplier availability, certificate authenticity, material grades, drawings and tolerances still require direct confirmation. General export experience does not establish experience with a particular destination, and date-based evaluations use the supplied snapshot rather than historical records.
+
+Listed monthly capacity does not represent available capacity. For example, VM1006 appears for both sample buyers: their combined batches total 2,500 units against a nominal capacity of 1,500 units per month. The dataset has no bookings or start dates to determine whether both orders fit within six weeks. Matching does not reserve or allocate production capacity.
+
+Accounts, supplier messaging, quotations, live bookings and freight estimates are outside the current scope. Contact details in the dataset are mock values.
+
+## Further reading
+
+- [Product note](docs/product-note.md) ([PDF](docs/product-note.pdf)): intended users, design choices, trade-offs and success measures.
+- [Data-quality report](docs/data-quality.md): source issues, normalization policy and assumptions.
+- [Verification record](docs/verification.md): completed checks, benchmarks and known verification limits.
+- [Third-party notices](THIRD_PARTY_NOTICES.md): dependency licenses and notices for supplied materials.
